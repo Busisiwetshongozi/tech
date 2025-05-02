@@ -5,69 +5,65 @@ import com.example.Tech.services.AuthService;
 import com.example.Tech.services.UserService;
 import com.google.firebase.auth.FirebaseToken;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class AuthController {
 
-    private final AuthService authService;
-    private final UserService userService;
+    @Autowired
+    private UserService userService;
 
     @Autowired
-    public AuthController(AuthService authService, UserService userService) {
-        this.authService = authService;
-        this.userService = userService;
-    }
+    private AuthService authService;
 
-    /**
-     * Register a new user with Firebase UID and additional data (name, phone, etc.)
-     * @param authHeader Authorization token from Firebase
-     * @param userData Map containing user information (name, phone, address, etc.)
-     * @return ResponseEntity containing user registration status
-     */
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestBody Map<String, Object> userData
+    public ResponseEntity<Object> registerUser(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestBody User userData
     ) {
-        // Check if the Authorization header is present and valid
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid Authorization header");
+        Map<String, Object> response = new HashMap<>();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setCacheControl("no-store");
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            response.put("status", "error");
+            response.put("message", "Authorization header missing or invalid");
+            return new ResponseEntity<>(response, headers, HttpStatus.BAD_REQUEST);
         }
 
-        // Extract token from the Authorization header
-        String token = authHeader.substring(7);
+        String idToken = authorizationHeader.substring(7);
 
         try {
-            // Verify the token using Firebase Authentication
-            FirebaseToken decodedToken = authService.verifyToken(token);
-            String firebaseUid = decodedToken.getUid();  // Firebase UID
-            String email = decodedToken.getEmail(); // Firebase email
+            FirebaseToken decodedToken = authService.verifyToken(idToken);
 
-            // Extract additional user data from the request body
-            String name = (String) userData.get("name");
-            String phone = (String) userData.get("phone");
-            String address = (String) userData.get("address");
+            if (decodedToken == null) {
+                response.put("status", "error");
+                response.put("message", "Invalid token");
+                return new ResponseEntity<>(response, headers, HttpStatus.UNAUTHORIZED);
+            }
 
-            // Call the UserService to register the user in the database
-            User user = userService.registerUser(firebaseUid, email, name, phone, address);  // Correctly calling userService.registerUser
+            // ✅ Set Firebase UID from token
+            userData.setFirebaseUid(decodedToken.getUid());
 
-            // Return the user details in the response
-            return ResponseEntity.ok(Map.of(
-                    "status", "success",
-                    "userId", user.getId(),
-                    "firebaseUid", user.getFirebaseUid(),
-                    "email", user.getEmail(),
-                    "name", user.getName()
-            ));
+            User savedUser = userService.registerUser(userData);
+            response.put("status", "success");
+            response.put("user", savedUser);
+            return new ResponseEntity<>(response, headers, HttpStatus.CREATED);
 
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token verification failed: " + e.getMessage());
+            response.put("status", "error");
+            response.put("message", "Registration failed: " + e.getMessage());
+            return new ResponseEntity<>(response, headers, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

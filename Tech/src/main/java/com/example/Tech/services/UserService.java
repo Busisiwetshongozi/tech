@@ -56,32 +56,21 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> null);
     }
 
-    public User registerUser(String firebaseUid, String email, String name, String phone, String address) {
-        Optional<User> existingUser = userRepo.findByFirebaseUid(firebaseUid);
-        if (existingUser.isPresent()) {
-            return existingUser.get(); // Or throw exception if duplicates are not allowed
+
+
+    public User registerUser(User user) throws Exception {
+        if (userRepo.existsByFirebaseUid(user.getFirebaseUid())) {
+            throw new Exception("User already exists");
         }
-
-        User user = new User();
-        user.setFirebaseUid(firebaseUid);
-        user.setEmail(email);
-        user.setName(name);
-        user.setPhone(phone);
-        user.setAddress(address);
-        user.setEnabled(true);
-        // Note: password is optional/blank if using Firebase
-
         return userRepo.save(user);
     }
-    public Optional<User> findByFirebaseUid(String firebaseUid) {
-        return userRepo.findByFirebaseUid(firebaseUid);
+    public boolean userExists(Long uid) {
+        return userRepo.existsById(uid);
     }
 
-    public Optional<User> findByEmail(String email) {
-        return userRepo.findByEmail(email);
+    public User findByUid(Long uid) {
+        return userRepo.findById(uid).orElse(null);
     }
-
-
     public void disableUser(Long userId) {
         User user = getUserById(userId);
         user.setEnabled(false);
