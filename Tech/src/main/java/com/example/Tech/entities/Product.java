@@ -2,6 +2,7 @@ package com.example.Tech.entities;
 
 
 import com.example.Tech.enums.Condition;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,6 +25,10 @@ public class Product {
         private String description;   // "Refurbished, like new"
         private double price;
         private int stockQuantity;
+
+        @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+        @JsonManagedReference //
+        private List<Review> reviews;
 
         @Enumerated(EnumType.STRING)
         private Condition condition;  // NEW, REFURBISHED, USED_GOOD
