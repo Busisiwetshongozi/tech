@@ -1,70 +1,91 @@
 package com.example.Tech.entities;
 
 import com.example.Tech.enums.OrderStatus;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
-@Table(name = "user_order")
-//@Setter @Getter  // Lombok annotations commented out
+@Table(name = "orders")
 public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false, updatable = false)
     private String orderNumber;
-    @Column(nullable = true)
-    private LocalDateTime orderDate;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime orderDate = LocalDateTime.now();
+
+    @Column(nullable = false)
+    @PositiveOrZero
     private double totalAmount;
-    @JsonIgnore
 
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    @Column(nullable = false)
+    @NotNull
+    private OrderStatus status = OrderStatus.PENDING;
 
-    @ManyToOne(optional = true)
-    @JoinColumn(name = "user_id")
+    // ✅ Use numeric user_id as FK
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<OrderItem> items = new ArrayList<>();
 
-    // Manual getters and setters
-    public Long getId() {
-        return id;
+    // === Constructors ===
+    public Order() {
+        this.orderNumber = generateOrderNumber();
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public Order(User user) {
+        this();  // Set orderNumber and orderDate
+        this.user = user;
+    }
+
+    // === Business Methods ===
+    public void addItem(OrderItem item) {
+        items.add(item);
+        item.setOrder(this);
+        calculateTotal();
+    }
+
+    private void calculateTotal() {
+        this.totalAmount = items.stream()
+                .mapToDouble(item -> item.getUnitPrice() * item.getQuantity())
+                .sum();
+    }
+
+    private String generateOrderNumber() {
+        return "ORD-" + System.currentTimeMillis() + "-" + (int) (Math.random() * 1000);
+    }
+
+    // === Getters and Setters ===
+
+    public Long getId() {
+        return id;
     }
 
     public String getOrderNumber() {
         return orderNumber;
     }
 
-    public void setOrderNumber(String orderNumber) {
-        this.orderNumber = orderNumber;
-    }
-
     public LocalDateTime getOrderDate() {
         return orderDate;
     }
 
-    public void setOrderDate(LocalDateTime orderDate) {
-        this.orderDate = orderDate;
-    }
-
     public double getTotalAmount() {
         return totalAmount;
-    }
-
-    public void setTotalAmount(double totalAmount) {
-        this.totalAmount = totalAmount;
     }
 
     public OrderStatus getStatus() {
@@ -87,13 +108,29 @@ public class Order {
         return items;
     }
 
-    public void setItems(List<OrderItem> items) {
-        this.items = items;
+    // === equals and hashCode ===
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Order order)) return false;
+        return Objects.equals(orderNumber, order.orderNumber);
     }
 
-    // Convenience method for adding order items
-    public void addOrderItem(OrderItem item) {
-        this.items.add(item);
-        item.setOrder(this);
+    @Override
+    public int hashCode() {
+        return Objects.hash(orderNumber);
+    }
+
+    @Override
+    public String toString() {
+        return "Order{" +
+                "id=" + id +
+                ", orderNumber='" + orderNumber + '\'' +
+                ", status=" + status +
+                ", totalAmount=" + totalAmount +
+                ", userId=" + (user != null ? user.getId() : "null") +
+                ", items=" + items.size() +
+                '}';
     }
 }

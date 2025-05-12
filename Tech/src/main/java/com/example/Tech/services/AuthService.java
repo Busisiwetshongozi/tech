@@ -19,6 +19,10 @@ public class AuthService {
             return null;
         }
     }
+    public String getUidFromToken(String idToken) throws FirebaseAuthException {
+        return FirebaseAuth.getInstance().verifyIdToken(idToken).getUid();
+    }
+
 
 }
 

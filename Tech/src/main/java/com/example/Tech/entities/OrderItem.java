@@ -14,14 +14,13 @@ public class OrderItem {
 
     private int quantity;
     private double unitPrice;
-@JsonIgnore
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "product_id")
     private Product product;
 
     @ManyToOne
-    @JoinColumn(name = "order_id")
-    @JsonBackReference
+    @JoinColumn(name = "order_id")    @JsonBackReference
     private Order order;
 
     // Manual getters and setters

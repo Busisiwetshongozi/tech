@@ -32,8 +32,25 @@ public class Product {
         private String storage;       // "128GB"
         private String color;         // "Black"
 
-        @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
-        private List<ProductImage> images;
+        @ElementCollection(fetch = FetchType.EAGER)
+        @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
+        @Column(name = "image_url", length = 2048) // Extra length for long URLs
+        private List<String> imageUrls = new ArrayList<>();
+
+        // Convenience methods for image management
+        public void addImageUrl(String url) {
+                if (url != null && !url.isBlank()) {
+                        this.imageUrls.add(url);
+                }
+        }
+
+        public void removeImageUrl(String url) {
+                this.imageUrls.remove(url);
+        }
+
+        public void clearAllImages() {
+                this.imageUrls.clear();
+        }
 
         // Getters, setters, constructors
         public Long getId() {
@@ -84,9 +101,7 @@ public class Product {
                 return color;
         }
 
-        public List<ProductImage> getImages() {
-                return images;
-        }
+
 
         // Setters
         public void setId(Long id) {
@@ -137,9 +152,7 @@ public class Product {
                 this.color = color;
         }
 
-        public void setImages(List<ProductImage> images) {
-                this.images = images;
-        }
+
 
         // Convenience method for adding images
 

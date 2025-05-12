@@ -28,8 +28,6 @@ public class User implements UserDetails {
     @Column(unique = true)
     private String firebaseUid; // Added field to link with Firebase Auth
 
-    @OneToMany(mappedBy = "user")
-    private List<Order> orders;
 
     // ======= Spring Security Implementation =======
     @Override
@@ -129,11 +127,5 @@ public class User implements UserDetails {
         this.firebaseUid = firebaseUid;
     }
 
-    public List<Order> getOrders() {
-        return orders;
-    }
 
-    public void setOrders(List<Order> orders) {
-        this.orders = orders;
-    }
 }

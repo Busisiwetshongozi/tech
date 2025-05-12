@@ -16,7 +16,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/protected/user-info",
                                 "/api/users/login",
-                                "/api/auth/register").permitAll()
+                                "/api/auth/register",
+                                "/api/auth/me",
+                                "/api/orders/create",
+                                "/api/orders/user",
+                                "/api/products",
+                                "/api/products/create").permitAll()
                         .anyRequest().denyAll()
                 );
 

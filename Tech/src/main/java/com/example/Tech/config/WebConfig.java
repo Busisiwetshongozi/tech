@@ -14,7 +14,7 @@ public class WebConfig implements WebMvcConfigurer {
         // Global CORS configuration for all controllers
         registry.addMapping("/**")  // Allow CORS for all endpoints
                 .allowedOrigins("http://localhost:3000")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE") // Allow these HTTP methods
+                .allowedMethods("GET", "POST", "PUT", "DELETE") // Allow these HTTP methods
                 .allowedHeaders("*")  // Allow all headers
                 .allowCredentials(true);  // Allow cookies or credentials if needed
     }

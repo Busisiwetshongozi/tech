@@ -46,7 +46,7 @@ public class UserController {
         }
     }
 
-        // Register new user
+    // Register new user
 
 
     // Get user by ID

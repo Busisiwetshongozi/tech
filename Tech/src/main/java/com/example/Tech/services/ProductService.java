@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -17,8 +18,7 @@ public class ProductService {
     private final ProductImageService productImageService;
 
     @Autowired
-    public ProductService(ProductRepo productRepo,
-                          ProductImageService productImageService) {
+    public ProductService(ProductRepo productRepo, ProductImageService productImageService) {
         this.productRepo = productRepo;
         this.productImageService = productImageService;
     }
@@ -40,18 +40,18 @@ public class ProductService {
         product.setStorage(request.getStorage());
         product.setColor(request.getColor());
 
-        Product savedProduct = productRepo.save(product);
+        // Add image URLs if present
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            request.getImageUrls().forEach(product::addImageUrl);
+        }
 
-        // Handle images if provided
-
-
-        return savedProduct;
+        return productRepo.save(product);
     }
 
     // READ
     public Product getProductById(Long id) {
         return productRepo.findById(id)
-                .orElseThrow(() -> null);
+                .orElseThrow(() -> new RuntimeException("Product not found"));
     }
 
     public List<Product> getAllProducts() {
@@ -70,15 +70,41 @@ public class ProductService {
         );
     }
 
-
-
     // DELETE
     public void deleteProduct(Long id) {
         Product product = getProductById(id);
         productRepo.delete(product);
     }
 
-    // BUSINESS LOGIC
+    // BUSINESS LOGIC: Fetch Multiple Products with Quantity Check
+    public List<Product> fetchProductsWithQuantity(List<Long> productIds, List<Integer> quantities) {
+        if (productIds.size() != quantities.size()) {
+            throw new IllegalArgumentException("Product IDs and quantities must match");
+        }
+
+        List<Product> products = productIds.stream()
+                .map(productId -> productRepo.findById(productId)
+                        .orElseThrow(() -> new RuntimeException("Product not found with ID: " + productId)))
+                .collect(Collectors.toList());
+
+        // Check if the requested quantity is less than or equal to the available stock for each product
+        for (int i = 0; i < productIds.size(); i++) {
+            Product product = products.get(i);
+            int requestedQuantity = quantities.get(i);
+
+            if (product.getStockQuantity() < requestedQuantity) {
+                throw new RuntimeException("Not enough stock for product: " + product.getName());
+            }
+
+            // Deduct the quantity from the stock
+            product.setStockQuantity(product.getStockQuantity() - requestedQuantity);
+            productRepo.save(product);  // Save the updated product with reduced stock
+        }
+
+        return products;  // Return the list of products that were successfully fetched
+    }
+
+    // RESTOCK PRODUCT
     public Product restockProduct(Long id, int quantity) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("Restock quantity must be positive");
@@ -89,6 +115,7 @@ public class ProductService {
         return productRepo.save(product);
     }
 
+    // APPLY DISCOUNT
     public Product applyDiscount(Long id, double percentDiscount) {
         if (percentDiscount < 0 || percentDiscount > 100) {
             throw new IllegalArgumentException("Discount must be between 0-100%");
@@ -113,6 +140,4 @@ public class ProductService {
             throw new IllegalArgumentException("Battery health must be 0-100%");
         }
     }
-
-
 }
