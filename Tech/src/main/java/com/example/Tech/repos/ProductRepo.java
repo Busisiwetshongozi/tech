@@ -1,16 +1,17 @@
 package com.example.Tech.repos;
 
 import com.example.Tech.entities.Product;
+import com.google.api.gax.paging.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.awt.print.Pageable;
 import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepo extends JpaRepository<Product,Long> {
     Optional<Product> findById(Long id);
-    List<Product> findByCategoryIgnoreCase(String category);
 
     @Query("SELECT p FROM Product p WHERE " +
             "(LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
@@ -20,4 +21,16 @@ public interface ProductRepo extends JpaRepository<Product,Long> {
             @Param("query") String query,
             @Param("minPrice") double minPrice,
             @Param("maxPrice") double maxPrice);
+
+
+    List<Product> findByMainCategory_Id(Long categoryId);
+
+
+    List<Product> findBySubCategory_Id(Long subCategoryId);
+    List<Product> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(String name, String description);
+
+    // Optional: If you want pagination
+    Page<Product> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(String name, String description, Pageable pageable);
+
+
 }

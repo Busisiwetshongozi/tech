@@ -1,6 +1,7 @@
 package com.example.Tech.services;
 
 import com.example.Tech.dtos.ProductRequestDTO;
+import com.example.Tech.entities.Category;
 import com.example.Tech.entities.Product;
 import com.example.Tech.repos.ProductRepo;
 import jakarta.transaction.Transactional;
@@ -16,22 +17,36 @@ public class ProductService {
 
     private final ProductRepo productRepo;
     private final ProductImageService productImageService;
-
+private final CategoryService categoryService;
     @Autowired
-    public ProductService(ProductRepo productRepo, ProductImageService productImageService) {
+    public ProductService(ProductRepo productRepo, ProductImageService productImageService,CategoryService categoryService) {
         this.productRepo = productRepo;
         this.productImageService = productImageService;
+        this.categoryService=categoryService;
     }
 
-    // CREATE
     public Product createProduct(ProductRequestDTO request) {
+        // Validate the incoming request
         validateProductRequest(request);
 
+        // Create a new Product instance
         Product product = new Product();
         product.setName(request.getName());
         product.setBrand(request.getBrand());
         product.setModel(request.getModel());
-        product.setCategory(request.getCategory().toUpperCase());
+
+        // Check if categoryId is provided and retrieve the category
+        if (request.getCategoryId() != null) {
+            Category category = categoryService.getCategoryById(request.getCategoryId());  // You might want to handle the exception if not found
+            if (category == null) {
+                throw new IllegalArgumentException("Category not found for the provided categoryId.");
+            }
+            product.setMainCategory(category);  // Link the category to the product
+        } else {
+            throw new IllegalArgumentException("Category ID is required.");
+        }
+
+        // Set other product details
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setStockQuantity(request.getStockQuantity());
@@ -40,13 +55,16 @@ public class ProductService {
         product.setStorage(request.getStorage());
         product.setColor(request.getColor());
 
-        // Add image URLs if present
+        // Handle image URLs if provided
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
             request.getImageUrls().forEach(product::addImageUrl);
         }
 
+        // Save the product to the repository
         return productRepo.save(product);
     }
+
+
 
     // READ
     public Product getProductById(Long id) {
@@ -58,9 +76,11 @@ public class ProductService {
         return productRepo.findAll();
     }
 
-    public List<Product> getProductsByCategory(String category) {
-        return productRepo.findByCategoryIgnoreCase(category);
+    public List<Product> getProductsByCategory(Long categoryId) {
+        return productRepo.findByMainCategory_Id(categoryId);
     }
+
+
 
     public List<Product> searchProducts(String query, Double minPrice, Double maxPrice) {
         return productRepo.searchProducts(

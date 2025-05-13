@@ -10,14 +10,17 @@ public class ProductRequestDTO {
     @NotBlank(message = "Product name is required")
     private String name;
 
+    private Long mainCategoryId;
+    private Long subCategoryId;
+
+    @NotNull(message = "Category ID is required")
+    private Long categoryId;  // This is the ID of the category
+
     @NotBlank(message = "Brand is required")
     private String brand;
 
     @NotBlank(message = "Model is required")
     private String model;
-
-    @NotBlank(message = "Category is required")
-    private String category;
 
     @NotBlank(message = "Description is required")
     private String description;
@@ -35,7 +38,7 @@ public class ProductRequestDTO {
 
     @Min(value = 0, message = "Battery health cannot be less than 0")
     @Max(value = 100, message = "Battery health cannot be more than 100")
-    private Integer batteryHealth;  // Optional, validate only if not null
+    private Integer batteryHealth;
 
     @NotBlank(message = "Storage is required")
     private String storage;
@@ -45,18 +48,24 @@ public class ProductRequestDTO {
 
     private List<@NotBlank(message = "Image URL cannot be blank") String> imageUrls;
 
-    // === Getters and Setters ===
+    // Getters and Setters
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public Long getMainCategoryId() { return mainCategoryId; }
+    public void setMainCategoryId(Long mainCategoryId) { this.mainCategoryId = mainCategoryId; }
+
+    public Long getSubCategoryId() { return subCategoryId; }
+    public void setSubCategoryId(Long subCategoryId){ this.subCategoryId = subCategoryId; }
+
+    public Long getCategoryId() { return categoryId; }
+    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 
     public String getBrand() { return brand; }
     public void setBrand(String brand) { this.brand = brand; }
 
     public String getModel() { return model; }
     public void setModel(String model) { this.model = model; }
-
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

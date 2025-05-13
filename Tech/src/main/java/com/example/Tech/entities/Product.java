@@ -1,63 +1,94 @@
 package com.example.Tech.entities;
 
-
 import com.example.Tech.enums.Condition;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 @Entity
-@Getter
-@Setter
+@Table(name = "product")
 public class Product {
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
 
-        private String name;          // "iPhone 12 128GB"
-        private String brand;         // "Apple"
-        private String model;         // "iPhone 12"
-        private String category;      // "PHONE", "LAPTOP"
-        private String description;   // "Refurbished, like new"
+        @Column(nullable = false)
+        private String name;
+
+        @Column(nullable = false)
+        private String brand;
+
+        @Column(nullable = false)
+        private String model;
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "main_category_id")
+        private Category mainCategory;
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "sub_category_id")
+        private Category subCategory;
+
+        @Column(columnDefinition = "TEXT")
+        private String description;
+
+        @Column(nullable = false)
         private double price;
+
+        @Column(name = "stock_quantity", nullable = false)
         private int stockQuantity;
 
-        @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
-        @JsonManagedReference //
-        private List<Review> reviews;
+        @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+        @JsonManagedReference
+        private List<Review> reviews = new ArrayList<>();
 
         @Enumerated(EnumType.STRING)
-        private Condition condition;  // NEW, REFURBISHED, USED_GOOD
+        @Column(nullable = false)
+        private Condition condition;
 
-        private int batteryHealth;    // 85 (percentage)
-        private String storage;       // "128GB"
-        private String color;         // "Black"
+        @Column(name = "battery_health")
+        private Integer batteryHealth; // Using Integer to allow null for non-battery devices
+
+        @Column(nullable = false)
+        private String storage;
+
+        private String color;
+
+        @ElementCollection(fetch = FetchType.EAGER)
+        @CollectionTable(name = "product_specs", joinColumns = @JoinColumn(name = "product_id"))
+        @MapKeyColumn(name = "spec_key")
+        @Column(name = "spec_value")
+        private Map<String, String> specifications = new HashMap<>();
 
         @ElementCollection(fetch = FetchType.EAGER)
         @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
-        @Column(name = "image_url", length = 2048) // Extra length for long URLs
+        @Column(name = "image_url", length = 2048)
         private List<String> imageUrls = new ArrayList<>();
 
-        // Convenience methods for image management
-        public void addImageUrl(String url) {
-                if (url != null && !url.isBlank()) {
-                        this.imageUrls.add(url);
-                }
+        @Column(name = "created_at", updatable = false)
+        private Long createdAt;
+
+        @Column(name = "updated_at")
+        private Long updatedAt;
+
+        // Constructors
+        public Product() {
+                this.createdAt = System.currentTimeMillis();
+                this.updatedAt = System.currentTimeMillis();
         }
 
-        public void removeImageUrl(String url) {
-                this.imageUrls.remove(url);
+        public Product(String name, String brand, String model) {
+                this();
+                this.name = name;
+                this.brand = brand;
+                this.model = model;
         }
 
-        public void clearAllImages() {
-                this.imageUrls.clear();
-        }
-
-        // Getters, setters, constructors
+        // Getters
         public Long getId() {
                 return id;
         }
@@ -74,8 +105,12 @@ public class Product {
                 return model;
         }
 
-        public String getCategory() {
-                return category;
+        public Category getMainCategory() {
+                return mainCategory;
+        }
+
+        public Category getSubCategory() {
+                return subCategory;
         }
 
         public String getDescription() {
@@ -90,11 +125,15 @@ public class Product {
                 return stockQuantity;
         }
 
+        public List<Review> getReviews() {
+                return reviews;
+        }
+
         public Condition getCondition() {
                 return condition;
         }
 
-        public int getBatteryHealth() {
+        public Integer getBatteryHealth() {
                 return batteryHealth;
         }
 
@@ -106,7 +145,21 @@ public class Product {
                 return color;
         }
 
+        public Map<String, String> getSpecifications() {
+                return specifications;
+        }
 
+        public List<String> getImageUrls() {
+                return imageUrls;
+        }
+
+        public Long getCreatedAt() {
+                return createdAt;
+        }
+
+        public Long getUpdatedAt() {
+                return updatedAt;
+        }
 
         // Setters
         public void setId(Long id) {
@@ -115,56 +168,145 @@ public class Product {
 
         public void setName(String name) {
                 this.name = name;
+                this.updatedAt = System.currentTimeMillis();
         }
 
         public void setBrand(String brand) {
                 this.brand = brand;
+                this.updatedAt = System.currentTimeMillis();
         }
 
         public void setModel(String model) {
                 this.model = model;
+                this.updatedAt = System.currentTimeMillis();
         }
 
-        public void setCategory(String category) {
-                this.category = category;
+        public void setMainCategory(Category mainCategory) {
+                this.mainCategory = mainCategory;
+                this.updatedAt = System.currentTimeMillis();
+        }
+
+        public void setSubCategory(Category subCategory) {
+                this.subCategory = subCategory;
+                this.updatedAt = System.currentTimeMillis();
         }
 
         public void setDescription(String description) {
                 this.description = description;
+                this.updatedAt = System.currentTimeMillis();
         }
 
         public void setPrice(double price) {
                 this.price = price;
+                this.updatedAt = System.currentTimeMillis();
         }
 
         public void setStockQuantity(int stockQuantity) {
                 this.stockQuantity = stockQuantity;
+                this.updatedAt = System.currentTimeMillis();
+        }
+
+        public void setReviews(List<Review> reviews) {
+                this.reviews = reviews;
+                this.updatedAt = System.currentTimeMillis();
         }
 
         public void setCondition(Condition condition) {
                 this.condition = condition;
+                this.updatedAt = System.currentTimeMillis();
         }
 
-        public void setBatteryHealth(int batteryHealth) {
+        public void setBatteryHealth(Integer batteryHealth) {
                 this.batteryHealth = batteryHealth;
+                this.updatedAt = System.currentTimeMillis();
         }
 
         public void setStorage(String storage) {
                 this.storage = storage;
+                this.updatedAt = System.currentTimeMillis();
         }
 
         public void setColor(String color) {
                 this.color = color;
+                this.updatedAt = System.currentTimeMillis();
         }
 
+        public void setSpecifications(Map<String, String> specifications) {
+                this.specifications = specifications;
+                this.updatedAt = System.currentTimeMillis();
+        }
 
+        public void setImageUrls(List<String> imageUrls) {
+                this.imageUrls = imageUrls;
+                this.updatedAt = System.currentTimeMillis();
+        }
 
-        // Convenience method for adding images
+        // Convenience methods
+        public void addReview(Review review) {
+                reviews.add(review);
+                review.setProduct(this);
+                this.updatedAt = System.currentTimeMillis();
+        }
 
+        public void removeReview(Review review) {
+                reviews.remove(review);
+                review.setProduct(null);
+                this.updatedAt = System.currentTimeMillis();
+        }
 
-        // Convenience method for removing images
+        public void addImageUrl(String url) {
+                if (url != null && !url.isBlank()) {
+                        this.imageUrls.add(url);
+                        this.updatedAt = System.currentTimeMillis();
+                }
+        }
 
+        public void removeImageUrl(String url) {
+                this.imageUrls.remove(url);
+                this.updatedAt = System.currentTimeMillis();
+        }
 
+        public void clearAllImages() {
+                this.imageUrls.clear();
+                this.updatedAt = System.currentTimeMillis();
+        }
 
+        public void addSpecification(String key, String value) {
+                this.specifications.put(key, value);
+                this.updatedAt = System.currentTimeMillis();
+        }
+
+        public void removeSpecification(String key) {
+                this.specifications.remove(key);
+                this.updatedAt = System.currentTimeMillis();
+        }
+
+        // Business logic methods
+        public boolean isInStock() {
+                return this.stockQuantity > 0;
+        }
+
+        public boolean isRefurbished() {
+                return this.condition == Condition.REFURBISHED;
+        }
+
+        public boolean hasBattery() {
+                return this.batteryHealth != null;
+        }
+
+        @PreUpdate
+        protected void onUpdate() {
+                this.updatedAt = System.currentTimeMillis();
+        }
+
+        @Override
+        public String toString() {
+                return "Product{" +
+                        "id=" + id +
+                        ", name='" + name + '\'' +
+                        ", brand='" + brand + '\'' +
+                        ", model='" + model + '\'' +
+                        ", price=" + price +
+                        '}';
+        }
 }
-

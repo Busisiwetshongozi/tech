@@ -20,9 +20,8 @@ public class SecurityConfig {
                                 "/api/auth/me",
                                 "/api/orders/create",
                                 "/api/orders/user",
-                                "/api/products",
-                                "/api/products/{id}",
-                                "/api/products/create",
+                                "/api/products/**",
+                                "/api/categories/**",
                                 "/api/reviews/create",
                                 "/api/reviews/{productId}/reviews").permitAll()
                         .anyRequest().denyAll()
