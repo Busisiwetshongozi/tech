@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
+
 @Entity
 //@Getter @Setter  // Lombok annotations (commented out)
 public class OrderItem {
@@ -13,7 +15,7 @@ public class OrderItem {
     private Long id;
 
     private int quantity;
-    private double unitPrice;
+    private BigDecimal unitPrice;
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "product_id")
@@ -40,11 +42,11 @@ public class OrderItem {
         this.quantity = quantity;
     }
 
-    public double getUnitPrice() {
+    public BigDecimal getUnitPrice() {
         return unitPrice;
     }
 
-    public void setUnitPrice(double unitPrice) {
+    public void setUnitPrice(BigDecimal unitPrice) {
         this.unitPrice = unitPrice;
     }
 

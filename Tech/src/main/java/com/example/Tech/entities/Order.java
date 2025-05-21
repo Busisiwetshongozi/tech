@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,14 +28,27 @@ public class Order {
 
     @Column(nullable = false)
     @PositiveOrZero
-    private double totalAmount;
+    private BigDecimal totalAmount = BigDecimal.ZERO;  // Changed to BigDecimal
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @NotNull
     private OrderStatus status = OrderStatus.PENDING;
 
-    // ✅ Use numeric user_id as FK
+    // === New Fields ===
+    @Column(nullable = true)
+    private String description; // Order description (e.g., "Electronics purchase", etc.)
+
+    @Column(nullable = true)
+    private String customerEmail; // Customer email associated with the order
+
+    @Column(nullable = true)
+    private String paymentStatus; // Payment status (e.g., "PAID", "PENDING", etc.)
+
+    @Column(nullable = true)
+    private LocalDateTime updatedAt; // Timestamp for when the order was last updated
+
+    // === Existing Fields ===
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -53,17 +67,17 @@ public class Order {
         this.user = user;
     }
 
-    // === Business Methods ===
+    // Method to recalculate total order amount
+    public void recalculateTotal() {
+        this.totalAmount = items.stream()
+                .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     public void addItem(OrderItem item) {
         items.add(item);
         item.setOrder(this);
-        calculateTotal();
-    }
-
-    private void calculateTotal() {
-        this.totalAmount = items.stream()
-                .mapToDouble(item -> item.getUnitPrice() * item.getQuantity())
-                .sum();
+        recalculateTotal(); // Now using public method
     }
 
     private String generateOrderNumber() {
@@ -71,7 +85,6 @@ public class Order {
     }
 
     // === Getters and Setters ===
-
     public Long getId() {
         return id;
     }
@@ -84,8 +97,12 @@ public class Order {
         return orderDate;
     }
 
-    public double getTotalAmount() {
+    public BigDecimal getTotalAmount() {
         return totalAmount;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {  // Updated setter
+        this.totalAmount = totalAmount;
     }
 
     public OrderStatus getStatus() {
@@ -108,8 +125,40 @@ public class Order {
         return items;
     }
 
-    // === equals and hashCode ===
+    // === New Getters and Setters ===
+    public String getDescription() {
+        return description;
+    }
 
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    // === equals and hashCode ===
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
