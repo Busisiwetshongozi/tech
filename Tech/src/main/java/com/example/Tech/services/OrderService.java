@@ -49,12 +49,19 @@ public class OrderService {
     public Order createOrderForUser(String firebaseUid,
                                     List<OrderItemDTO> orderItemDTOs,
                                     OrderStatus status) {
+        // Fetch the user from your internal DB using Firebase UID
         User user = userRepo.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        Order order = new Order(user);
+        // Create a new Order
+        Order order = new Order();
+        order.setUser(user); // Associate the order with the user
         order.setStatus(status);
 
+        // Set the customer email from the currently logged-in user's email
+        order.setCustomerEmail(user.getEmail()); // Assuming the 'User' entity has an email field
+
+        // Add items to the order based on the provided DTOs
         for (OrderItemDTO dto : orderItemDTOs) {
             Product product = productRepo.findById(dto.getProductId())
                     .orElseThrow(() -> new NotFoundException("Product not found"));
@@ -63,15 +70,18 @@ public class OrderService {
             item.setProduct(product);
             item.setQuantity(dto.getQuantity());
 
-            // Use BigDecimal for price precision
-            item.setUnitPrice(BigDecimal.valueOf(product.getPrice())); // set unit price as BigDecimal
+            // Set the unit price of the item
+            item.setUnitPrice(BigDecimal.valueOf(product.getPrice())); // Assuming price is double
 
-            order.addItem(item); // This triggers recalculateTotal()
+            // Add the item to the order
+            order.addItem(item);
         }
 
-        order.recalculateTotal(); // Recalculate the total amount
+        // Recalculate the total amount for the order after adding all items
+        order.recalculateTotal();
 
-        return orderRepo.save(order); // Save the order and return
+        // Save and return the order
+        return orderRepo.save(order);
     }
 
     // Get orders for a user by their Firebase UID

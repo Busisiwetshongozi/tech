@@ -2,6 +2,7 @@ package com.example.Tech.controllers;
 
 import com.example.Tech.dtos.OrderItemDTO;
 import com.example.Tech.dtos.OrderRequestWrapper;
+import com.example.Tech.dtos.OrderResponseDTO;
 import com.example.Tech.dtos.PaymentInitiationResponse;
 import com.example.Tech.entities.Order;
 import com.example.Tech.enums.OrderStatus;
@@ -16,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -36,8 +38,6 @@ public class OrderController {
         this.authService = authService;
         this.payFastService = payFastService;
     }
-
-    // Create order for a user
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(
             @RequestBody OrderRequestWrapper request,
@@ -47,20 +47,31 @@ public class OrderController {
             List<OrderItemDTO> items = request.getItem() != null
                     ? List.of(request.getItem()) : request.getItems();
 
+            // Create the order
             Order order = orderService.createOrderForUser(firebaseUid, items, OrderStatus.PENDING);
-            return ResponseEntity.ok(order);
+
+            // Map the order to OrderResponseDTO
+            OrderResponseDTO orderResponseDTO = new OrderResponseDTO(
+                    order.getId(),
+                    order.getStatus().toString(),
+                    order.getTotalAmount()
+            );
+
+            // Return the DTO in the response
+            return ResponseEntity.ok(orderResponseDTO);
 
         } catch (FirebaseAuthException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid token"));
         } catch (NotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Order creation failed: " + e.getMessage());
+                    .body(Map.of("message", "Order creation failed: " + e.getMessage()));
         }
     }
+
 
     // Initiate payment for an order
     @PostMapping("/{orderId}/initiate-payment")

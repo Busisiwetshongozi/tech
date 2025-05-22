@@ -16,12 +16,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 @Slf4j
 @RestController
 @RequestMapping("/api/payfast")
 @RequiredArgsConstructor
 public class PayFastController {
+
     @Value("${app.base-url}")
     private String baseUrl;
 
@@ -44,16 +44,19 @@ public class PayFastController {
             PaymentInitiationResponse response = payFastService.initiatePaymentForm(order, baseUrl);
             return ResponseEntity.ok(response);
         } catch (FirebaseAuthException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            log.error("Firebase authentication failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new PaymentInitiationResponse("Authentication failed"));
         } catch (OrderProcessingException | NotFoundException e) {
-            return ResponseEntity.badRequest().body(null);
+            log.error("Order processing failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new PaymentInitiationResponse("Order is not valid for payment"));
         } catch (Exception e) {
             log.error("Payment initiation failed", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new PaymentInitiationResponse("Internal server error"));
         }
     }
-
-
 
     @Data
     public static class PaymentRequest {

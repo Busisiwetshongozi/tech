@@ -54,16 +54,15 @@ public class PayFastService {
         parameters.put("email_address", order.getCustomerEmail());
         parameters.put("m_payment_id", order.getId().toString());
 
-        // Generate PayFast signature
-        String signature = PayFastUtil.generateSignature(parameters, passphrase);
+        // Generate PayFast signature (without passphrase)
+        String signature = PayFastUtil.generateSignature(parameters, "");  // Empty string for passphrase
         parameters.put("signature", signature);
 
-        // Generate the payment URL for PayFast (this is where the user will be redirected)
-        String paymentUrl = generateHtmlForm(parameters); // Assuming this generates the correct URL for PayFast.
-
-        // Return a PaymentInitiationResponse containing the orderId, paymentUrl, and parameters
-        return new PaymentInitiationResponse(order.getId(), paymentUrl, parameters);
+        // Return JSON response (NOT HTML)
+        return new PaymentInitiationResponse(order.getId(), payfastUrl, parameters);
     }
+
+
 
 
     private void validateOrder(Order order) {
