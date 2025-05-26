@@ -17,12 +17,16 @@ public class PayFastUtil {
                 .forEach(entry -> paramString.append(entry.getKey()).append("=").append(entry.getValue()).append("&"));
 
         // Append the passphrase if it exists (for PayFast accounts that require it)
-        if (passphrase != null && !passphrase.isEmpty()) {
+        if (passphrase != null && !passphrase.isBlank()) {
             paramString.append("passphrase=").append(passphrase);
-        } else if (paramString.length() > 0) {
-            // Remove the last '&' if passphrase is not provided
-            paramString.deleteCharAt(paramString.length() - 1);
+        } else {
+            // Safely remove the last '&' if it exists
+            int lastIndex = paramString.length() - 1;
+            if (lastIndex >= 0 && paramString.charAt(lastIndex) == '&') {
+                paramString.deleteCharAt(lastIndex);
+            }
         }
+
 
         // Return MD5 hash of the concatenated string
         return md5(paramString.toString());

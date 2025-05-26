@@ -3,10 +3,12 @@ package com.example.Tech.services;
 import com.example.Tech.dtos.ProductRequestDTO;
 import com.example.Tech.entities.Category;
 import com.example.Tech.entities.Product;
+import com.example.Tech.entities.ProductImage;
 import com.example.Tech.repos.ProductRepo;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,36 +19,34 @@ public class ProductService {
 
     private final ProductRepo productRepo;
     private final ProductImageService productImageService;
-private final CategoryService categoryService;
+    private final CategoryService categoryService;
+    private final ImageStorageService imageStorageService;
     @Autowired
-    public ProductService(ProductRepo productRepo, ProductImageService productImageService,CategoryService categoryService) {
+    public ProductService(ProductRepo productRepo,ImageStorageService imageStorageService, ProductImageService productImageService,CategoryService categoryService) {
         this.productRepo = productRepo;
         this.productImageService = productImageService;
         this.categoryService=categoryService;
+        this.imageStorageService=imageStorageService;
     }
 
-    public Product createProduct(ProductRequestDTO request) {
-        // Validate the incoming request
+    public Product createProductWithImages(ProductRequestDTO request, List<MultipartFile> images) {
         validateProductRequest(request);
 
-        // Create a new Product instance
         Product product = new Product();
         product.setName(request.getName());
         product.setBrand(request.getBrand());
         product.setModel(request.getModel());
 
-        // Check if categoryId is provided and retrieve the category
         if (request.getCategoryId() != null) {
-            Category category = categoryService.getCategoryById(request.getCategoryId());  // You might want to handle the exception if not found
+            Category category = categoryService.getCategoryById(request.getCategoryId());
             if (category == null) {
-                throw new IllegalArgumentException("Category not found for the provided categoryId.");
+                throw new IllegalArgumentException("Category not found");
             }
-            product.setMainCategory(category);  // Link the category to the product
+            product.setMainCategory(category);
         } else {
             throw new IllegalArgumentException("Category ID is required.");
         }
 
-        // Set other product details
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setStockQuantity(request.getStockQuantity());
@@ -55,12 +55,17 @@ private final CategoryService categoryService;
         product.setStorage(request.getStorage());
         product.setColor(request.getColor());
 
-        // Handle image URLs if provided
-        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
-            request.getImageUrls().forEach(product::addImageUrl);
+        // ✅ Save images and link via ProductImage entity
+        if (images != null && !images.isEmpty()) {
+            List<String> imageUrls = imageStorageService.storeImages(images);
+            for (String imageUrl : imageUrls) {
+                ProductImage image = new ProductImage();
+                image.setImageUrl(imageUrl);
+                image.setProduct(product);
+                product.addImage(image); // convenience method in Product
+            }
         }
 
-        // Save the product to the repository
         return productRepo.save(product);
     }
 
@@ -135,17 +140,7 @@ private final CategoryService categoryService;
         return productRepo.save(product);
     }
 
-    // APPLY DISCOUNT
-    public Product applyDiscount(Long id, double percentDiscount) {
-        if (percentDiscount < 0 || percentDiscount > 100) {
-            throw new IllegalArgumentException("Discount must be between 0-100%");
-        }
 
-        Product product = getProductById(id);
-        double newPrice = product.getPrice() * (1 - (percentDiscount / 100));
-        product.setPrice(Math.round(newPrice * 100.0) / 100.0); // Round to 2 decimal places
-        return productRepo.save(product);
-    }
 
     // VALIDATION
     private void validateProductRequest(ProductRequestDTO request) {
@@ -160,4 +155,14 @@ private final CategoryService categoryService;
             throw new IllegalArgumentException("Battery health must be 0-100%");
         }
     }
+    public Product applyDiscount(Long productId, double discountPercent) {
+        if (discountPercent < 0 || discountPercent > 100) {
+            throw new IllegalArgumentException("Discount must be between 0 and 100");
+        }
+
+        Product product = getProductById(productId);
+        product.setDiscountPercentage(discountPercent);
+        return productRepo.save(product);
+    }
+
 }

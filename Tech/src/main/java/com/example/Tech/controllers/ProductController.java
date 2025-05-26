@@ -5,8 +5,10 @@ import com.example.Tech.entities.Product;
 import com.example.Tech.services.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,9 +24,12 @@ public class ProductController {
     }
 
     // CREATE
-    @PostMapping("/create")
-    public ResponseEntity<Product> createProduct(@Valid @RequestBody ProductRequestDTO request) {
-        Product created = productService.createProduct(request);
+    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Product> createProduct(
+            @RequestPart("product") @Valid ProductRequestDTO request,
+            @RequestPart("images") List<MultipartFile> images) {
+
+        Product created = productService.createProductWithImages(request, images);
         return ResponseEntity.ok(created);
     }
 
@@ -93,4 +98,6 @@ public class ProductController {
         List<Product> products = productService.fetchProductsWithQuantity(productIds, quantities);
         return ResponseEntity.ok(products);
     }
+
+
 }

@@ -55,8 +55,8 @@ public class PayFastService {
         parameters.put("m_payment_id", order.getId().toString());
 
         // Generate PayFast signature (without passphrase)
-        String signature = PayFastUtil.generateSignature(parameters, "");  // Empty string for passphrase
-        parameters.put("signature", signature);
+        String signature = PayFastUtil.generateSignature(parameters, passphrase);
+
 
         // Return JSON response (NOT HTML)
         return new PaymentInitiationResponse(order.getId(), payfastUrl, parameters);

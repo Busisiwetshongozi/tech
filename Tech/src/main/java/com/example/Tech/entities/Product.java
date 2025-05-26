@@ -2,12 +2,12 @@ package com.example.Tech.entities;
 
 import com.example.Tech.enums.Condition;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 @Entity
 @Table(name = "product")
 public class Product {
@@ -49,8 +49,20 @@ public class Product {
         @Enumerated(EnumType.STRING)
         @Column(nullable = false)
         private Condition condition;
+    @Column(name = "discount_percentage")
+    private Double discountPercentage; // e.g. 20.0 for 20% off
 
-        @Column(name = "battery_health")
+    @Transient
+    @JsonProperty("discountedPrice")
+    public double getDiscountedPrice() {
+        if (discountPercentage != null && discountPercentage > 0) {
+            return price - (price * discountPercentage / 100.0);
+        }
+        return price;
+    }
+
+
+    @Column(name = "battery_health")
         private Integer batteryHealth; // Using Integer to allow null for non-battery devices
 
         @Column(nullable = false)
@@ -64,10 +76,8 @@ public class Product {
         @Column(name = "spec_value")
         private Map<String, String> specifications = new HashMap<>();
 
-        @ElementCollection(fetch = FetchType.EAGER)
-        @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
-        @Column(name = "image_url", length = 2048)
-        private List<String> imageUrls = new ArrayList<>();
+        @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<ProductImage> images = new ArrayList<>();
 
         @Column(name = "created_at", updatable = false)
         private Long createdAt;
@@ -120,8 +130,17 @@ public class Product {
         public double getPrice() {
                 return price;
         }
+    public Double getDiscountPercentage() {
+        return discountPercentage;
+    }
 
-        public int getStockQuantity() {
+    public void setDiscountPercentage(Double discountPercentage) {
+        this.discountPercentage = discountPercentage;
+        this.updatedAt = System.currentTimeMillis();
+    }
+
+
+    public int getStockQuantity() {
                 return stockQuantity;
         }
 
@@ -149,8 +168,8 @@ public class Product {
                 return specifications;
         }
 
-        public List<String> getImageUrls() {
-                return imageUrls;
+        public List<ProductImage> getImages() {
+                return images;
         }
 
         public Long getCreatedAt() {
@@ -236,8 +255,8 @@ public class Product {
                 this.updatedAt = System.currentTimeMillis();
         }
 
-        public void setImageUrls(List<String> imageUrls) {
-                this.imageUrls = imageUrls;
+        public void setImages(List<ProductImage> images) {
+                this.images = images;
                 this.updatedAt = System.currentTimeMillis();
         }
 
@@ -254,20 +273,24 @@ public class Product {
                 this.updatedAt = System.currentTimeMillis();
         }
 
-        public void addImageUrl(String url) {
-                if (url != null && !url.isBlank()) {
-                        this.imageUrls.add(url);
+        public void addImage(ProductImage image) {
+                if (image != null) {
+                        this.images.add(image);
+                        image.setProduct(this);
                         this.updatedAt = System.currentTimeMillis();
                 }
         }
 
-        public void removeImageUrl(String url) {
-                this.imageUrls.remove(url);
-                this.updatedAt = System.currentTimeMillis();
+        public void removeImage(ProductImage image) {
+                if (image != null) {
+                        this.images.remove(image);
+                        image.setProduct(null);
+                        this.updatedAt = System.currentTimeMillis();
+                }
         }
 
         public void clearAllImages() {
-                this.imageUrls.clear();
+                this.images.clear();
                 this.updatedAt = System.currentTimeMillis();
         }
 

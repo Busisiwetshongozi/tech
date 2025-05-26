@@ -25,6 +25,7 @@ public class SecurityConfig {
                                 "/api/reviews/create",
                                 "/api/payfast/**",
                                 "/api/orders/{id}/initiate-payment",
+                                "/api/products/{id}/discount",
                                 "/api/reviews/{productId}/reviews").permitAll()
                         .anyRequest().denyAll()
                 );
