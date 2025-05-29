@@ -18,6 +18,8 @@ public class SecurityConfig {
                                 "/api/users/login",
                                 "/api/auth/register",
                                 "/api/auth/me",
+                                "/api/users/**",
+                                "/api/orders",
                                 "/api/orders/create",
                                 "/api/orders/user",
                                 "/api/products/**",

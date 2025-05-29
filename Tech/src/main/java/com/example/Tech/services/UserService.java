@@ -1,7 +1,5 @@
 package com.example.Tech.services;
-
-import com.example.Tech.dtos.UserRegistrationDTO;
-import com.example.Tech.entities.Order;
+import com.example.Tech.enums.Role;
 import com.example.Tech.entities.User;
 import com.example.Tech.repos.OrderRepo;
 import com.example.Tech.repos.UserRepo;
@@ -9,10 +7,8 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Role;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -21,7 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+
 @Service
 @Transactional
 public class UserService implements UserDetailsService {
@@ -57,10 +53,12 @@ public class UserService implements UserDetailsService {
             throw new Exception("User already exists");
         }
 
-        // Log for debugging
-        System.out.println("Saving user with name: " + user.getName());
+        // Set default role to CUSTOMER if not specified
+        if (user.getRole() == null) {
+            user.setRole(Role.CUSTOMER);
+        }
 
-        // Save user to the database
+        logger.info("Registering new user with email: {}", user.getEmail());
         return userRepo.save(user);
     }
 
@@ -79,6 +77,13 @@ public class UserService implements UserDetailsService {
     }
 
     // Admin functions
+    @PreAuthorize("hasRole('ADMIN')")
+    public User promoteToAdmin(Long userId) {
+        User user = getUserById(userId);
+        user.setRole(Role.ADMIN);
+        return userRepo.save(user);
+    }
+
     public User authenticate(String email, String rawPassword) {
         // 1. Find user by email
         User user = userRepo.findByEmail(email)
@@ -97,28 +102,37 @@ public class UserService implements UserDetailsService {
         }
 
         logger.info("User logged in: {}", email);
-        return user; // Return authenticated user (without password)
+        return user;
     }
 
-    // This method is where you are registering the user after Firebase Authentication
     public User findOrCreateUserFromFirebase(String firebaseUid, String email, String name, String address, String phone) {
-        // Check if the user already exists by Firebase UID
         return userRepo.findByFirebaseUid(firebaseUid)
                 .orElseGet(() -> {
-                    // If user doesn't exist, create a new one
                     User newUser = new User();
-                    newUser.setFirebaseUid(firebaseUid);  // Firebase UID
-                    newUser.setEmail(email);  // Email from Firebase
-                    newUser.setName(name);  // Name from the request body
-                    newUser.setAddress(address);  // Custom address
-                    newUser.setPhone(phone);  // Custom phone number
-                    newUser.setEnabled(true);  // Enable the account
-                    return userRepo.save(newUser);  // Save new user to the database
+                    newUser.setFirebaseUid(firebaseUid);
+                    newUser.setEmail(email);
+                    newUser.setName(name);
+                    newUser.setAddress(address);
+                    newUser.setPhone(phone);
+                    newUser.setEnabled(true);
+                    newUser.setRole(Role.CUSTOMER); // Set default role for Firebase users
+                    return userRepo.save(newUser);
                 });
     }
 
     public User getUserByFirebaseUid(String firebaseUid) {
         return userRepo.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new RuntimeException("User not found with Firebase UID: " + firebaseUid));
+    }
+
+    // Additional role-based methods
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<User> getAllUsers() {
+        return userRepo.findAll();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteUser(Long userId) {
+        userRepo.deleteById(userId);
     }
 }

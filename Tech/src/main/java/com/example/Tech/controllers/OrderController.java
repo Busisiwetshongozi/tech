@@ -14,6 +14,7 @@ import com.google.firebase.auth.FirebaseAuthException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -133,4 +134,28 @@ public class OrderController {
             return ResponseEntity.status(500).body("Error fetching order");
         }
     }
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllOrders() {
+        try {
+            List<Order> orders = orderService.getAllOrders();
+
+            List<OrderResponseDTO> dtos = orders.stream()
+                    .map(order -> new OrderResponseDTO(
+                            order.getId(),
+                            order.getStatus().name(),
+                            order.getTotalAmount()
+                    ))
+                    .toList();
+
+            return ResponseEntity.ok(dtos);
+
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(500)
+                    .body("Failed to fetch all orders: " + e.getMessage());
+        }
+    }
+
+
 }

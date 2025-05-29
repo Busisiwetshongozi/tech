@@ -1,8 +1,10 @@
 package com.example.Tech.controllers;
 
+import com.example.Tech.dtos.UserDTO;
 import com.example.Tech.dtos.UserLoginDTO;
 import com.example.Tech.dtos.UserRegistrationDTO;
 import com.example.Tech.entities.User;
+import com.example.Tech.enums.Role;
 import com.example.Tech.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,7 +27,6 @@ public class UserController {
         this.userService = userService;
     }
 
-
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserLoginDTO request) {
         try {
@@ -34,7 +35,8 @@ public class UserController {
                     "status", "success",
                     "user", Map.of(
                             "email", user.getEmail(),
-                            "name", user.getName()
+                            "name", user.getName(),
+                            "role", user.getRole() // Include role in response
                     )
             ));
         } catch (BadCredentialsException e) {
@@ -46,10 +48,27 @@ public class UserController {
         }
     }
 
-    // Register new user
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody UserRegistrationDTO registrationDTO) {
+        try {
+            User user = new User();
+            user.setEmail(registrationDTO.getEmail());
+            user.setPassword(registrationDTO.getPassword());
+            user.setName(registrationDTO.getName());
+            user.setPhone(registrationDTO.getPhone());
+            user.setAddress(registrationDTO.getAddress());
+            user.setRole(Role.CUSTOMER); // Set default role
 
+            User registeredUser = userService.registerUser(user);
+            return ResponseEntity.status(HttpStatus.CREATED).body(registeredUser);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
 
-    // Get user by ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
         try {
@@ -60,8 +79,8 @@ public class UserController {
         }
     }
 
-    // Disable user account
     @PutMapping("/{id}/disable")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> disableUser(@PathVariable Long id) {
         try {
             userService.disableUser(id);
@@ -71,7 +90,23 @@ public class UserController {
         }
     }
 
-    // Get all users (Admin only)
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        List<User> users = userService.getAllUsers();
+        List<UserDTO> dtos = users.stream().map(UserDTO::fromEntity).toList();
+        return ResponseEntity.ok(dtos);
+    }
 
 
+    @PutMapping("/{id}/promote-to-admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> promoteToAdmin(@PathVariable Long id) {
+        try {
+            User user = userService.promoteToAdmin(id);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+    }
 }
