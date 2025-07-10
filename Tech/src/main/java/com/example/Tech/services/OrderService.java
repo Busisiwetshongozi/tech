@@ -17,7 +17,8 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -67,13 +68,22 @@ public class OrderService {
             Product product = productRepo.findById(dto.getProductId())
                     .orElseThrow(() -> new NotFoundException("Product not found"));
 
-            double discountPercent = product.getDiscountPercentage() != null ? product.getDiscountPercentage() : 0;
-            double discountedPrice = product.getPrice() * (1 - discountPercent / 100.0);
+            BigDecimal discountPercent = product.getDiscountPercentage() != null
+                    ? product.getDiscountPercentage()
+                    : BigDecimal.ZERO;
+
+
+
+            BigDecimal hundred = BigDecimal.valueOf(100);
+
+            // Calculate discountedPrice = price * (1 - discountPercent / 100)
+            BigDecimal discountMultiplier = BigDecimal.ONE.subtract(discountPercent.divide(hundred, 4, RoundingMode.HALF_UP));
+            BigDecimal discountedPrice = product.getPrice().multiply(discountMultiplier).setScale(2, RoundingMode.HALF_UP);
 
             OrderItem item = new OrderItem();
             item.setProduct(product);
             item.setQuantity(dto.getQuantity());
-            item.setUnitPrice(BigDecimal.valueOf(discountedPrice));
+            item.setUnitPrice(discountedPrice);
 
             order.addItem(item);
         }

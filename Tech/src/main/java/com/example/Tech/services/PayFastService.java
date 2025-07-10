@@ -48,7 +48,8 @@ public class PayFastService {
         parameters.put("merchant_key", merchantKey);
         parameters.put("amount", order.getTotalAmount().toPlainString());
         parameters.put("item_name", order.getDescription() != null ? order.getDescription() : "No description");
-        parameters.put("return_url", baseUrl + "/payment/success?orderId=" + order.getId());
+        parameters.put("return_url", "http://localhost:3000/home?payment=success");
+
         parameters.put("cancel_url", baseUrl + "/payment/cancel?orderId=" + order.getId());
         parameters.put("notify_url", baseUrl + "/api/payments/notify");
         parameters.put("email_address", order.getCustomerEmail());

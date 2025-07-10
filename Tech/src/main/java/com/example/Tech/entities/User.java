@@ -1,7 +1,9 @@
 package com.example.Tech.entities;
 
+import com.example.Tech.enums.Role;
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -28,11 +30,13 @@ public class User implements UserDetails {
     @Column(unique = true)
     private String firebaseUid; // Added field to link with Firebase Auth
 
+    @Enumerated(EnumType.STRING)
+    private Role role; // Added field for user role
 
     // ======= Spring Security Implementation =======
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList();
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override
@@ -83,8 +87,6 @@ public class User implements UserDetails {
         this.email = email;
     }
 
-
-
     public void setPassword(String password) {
         this.password = password;
     }
@@ -113,8 +115,6 @@ public class User implements UserDetails {
         this.address = address;
     }
 
-
-
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
@@ -125,6 +125,14 @@ public class User implements UserDetails {
 
     public void setFirebaseUid(String firebaseUid) {
         this.firebaseUid = firebaseUid;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 
 

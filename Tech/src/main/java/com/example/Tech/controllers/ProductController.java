@@ -5,11 +5,10 @@ import com.example.Tech.entities.Product;
 import com.example.Tech.services.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -23,13 +22,10 @@ public class ProductController {
         this.productService = productService;
     }
 
-    // CREATE
-    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Product> createProduct(
-            @RequestPart("product") @Valid ProductRequestDTO request,
-            @RequestPart("images") List<MultipartFile> images) {
-
-        Product created = productService.createProductWithImages(request, images);
+    // ✅ CREATE with Firebase image URLs
+    @PostMapping("/create")
+    public ResponseEntity<Product> createProduct(@RequestBody @Valid ProductRequestDTO request) {
+        Product created = productService.createProductFromFirebase(request);
         return ResponseEntity.ok(created);
     }
 
@@ -38,7 +34,6 @@ public class ProductController {
     public ResponseEntity<List<Product>> getAllProducts() {
         return ResponseEntity.ok(productService.getAllProducts());
     }
-
 
     // GET BY ID
     @GetMapping("/{id}")
@@ -52,15 +47,12 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductsByCategory(categoryId));
     }
 
-
-
     // SEARCH
     @GetMapping("/search")
     public ResponseEntity<List<Product>> searchProducts(
             @RequestParam String query,
             @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice
-    ) {
+            @RequestParam(required = false) Double maxPrice) {
         return ResponseEntity.ok(productService.searchProducts(query, minPrice, maxPrice));
     }
 
@@ -75,8 +67,7 @@ public class ProductController {
     @PutMapping("/{id}/restock")
     public ResponseEntity<Product> restockProduct(
             @PathVariable Long id,
-            @RequestParam int quantity
-    ) {
+            @RequestParam int quantity) {
         return ResponseEntity.ok(productService.restockProduct(id, quantity));
     }
 
@@ -84,8 +75,7 @@ public class ProductController {
     @PutMapping("/{id}/discount")
     public ResponseEntity<Product> applyDiscount(
             @PathVariable Long id,
-            @RequestParam double percent
-    ) {
+            @RequestParam BigDecimal percent) {
         return ResponseEntity.ok(productService.applyDiscount(id, percent));
     }
 
@@ -93,11 +83,8 @@ public class ProductController {
     @PostMapping("/fetch-with-quantity")
     public ResponseEntity<List<Product>> fetchProductsWithQuantity(
             @RequestParam List<Long> productIds,
-            @RequestParam List<Integer> quantities
-    ) {
+            @RequestParam List<Integer> quantities) {
         List<Product> products = productService.fetchProductsWithQuantity(productIds, quantities);
         return ResponseEntity.ok(products);
     }
-
-
 }

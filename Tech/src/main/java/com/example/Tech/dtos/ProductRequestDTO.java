@@ -3,6 +3,7 @@ package com.example.Tech.dtos;
 import com.example.Tech.enums.Condition;
 import jakarta.validation.constraints.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class ProductRequestDTO {
@@ -26,8 +27,8 @@ public class ProductRequestDTO {
     private String description;
 
     @NotNull(message = "Price is required")
-    @Positive(message = "Price must be greater than zero")
-    private Double price;
+    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than zero")
+    private BigDecimal price;  // Changed from Double to BigDecimal
 
     @NotNull(message = "Stock quantity is required")
     @Min(value = 0, message = "Stock quantity cannot be negative")
@@ -70,8 +71,8 @@ public class ProductRequestDTO {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public Double getPrice() { return price; }
-    public void setPrice(Double price) { this.price = price; }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
     public Integer getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }

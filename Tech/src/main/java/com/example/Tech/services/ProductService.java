@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,7 +30,7 @@ public class ProductService {
         this.imageStorageService=imageStorageService;
     }
 
-    public Product createProductWithImages(ProductRequestDTO request, List<MultipartFile> images) {
+    public Product createProductFromFirebase(ProductRequestDTO request) {
         validateProductRequest(request);
 
         Product product = new Product();
@@ -55,19 +56,21 @@ public class ProductService {
         product.setStorage(request.getStorage());
         product.setColor(request.getColor());
 
-        // ✅ Save images and link via ProductImage entity
-        if (images != null && !images.isEmpty()) {
-            List<String> imageUrls = imageStorageService.storeImages(images);
+        // ✅ Attach Firebase-hosted image URLs
+        List<String> imageUrls = request.getImageUrls();
+        if (imageUrls != null && !imageUrls.isEmpty()) {
             for (String imageUrl : imageUrls) {
                 ProductImage image = new ProductImage();
                 image.setImageUrl(imageUrl);
                 image.setProduct(product);
-                product.addImage(image); // convenience method in Product
+                product.addImage(image);
             }
         }
 
         return productRepo.save(product);
     }
+
+
 
 
 
@@ -144,9 +147,10 @@ public class ProductService {
 
     // VALIDATION
     private void validateProductRequest(ProductRequestDTO request) {
-        if (request.getPrice() <= 0) {
+        if (request.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Price must be positive");
         }
+
         if (request.getStockQuantity() < 0) {
             throw new IllegalArgumentException("Stock quantity cannot be negative");
         }
@@ -155,14 +159,24 @@ public class ProductService {
             throw new IllegalArgumentException("Battery health must be 0-100%");
         }
     }
-    public Product applyDiscount(Long productId, double discountPercent) {
-        if (discountPercent < 0 || discountPercent > 100) {
+    public Product applyDiscount(Long productId, BigDecimal discountPercent) {
+        if (discountPercent.compareTo(BigDecimal.ZERO) < 0 ||
+                discountPercent.compareTo(BigDecimal.valueOf(100)) > 0) {
             throw new IllegalArgumentException("Discount must be between 0 and 100");
         }
+
 
         Product product = getProductById(productId);
         product.setDiscountPercentage(discountPercent);
         return productRepo.save(product);
     }
+    public List<String> uploadImageFiles(List<MultipartFile> images) {
+        if (images == null || images.isEmpty()) {
+            throw new IllegalArgumentException("No images provided");
+        }
+
+        return imageStorageService.storeImages(images); // This already uploads to Firebase
+    }
+
 
 }
